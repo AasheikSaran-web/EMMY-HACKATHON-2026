@@ -27,6 +27,7 @@ import requests
 
 
 PROBLEMS = Path(__file__).resolve().parent / "problems"   # works from any directory
+SEARCH = (PROBLEMS, PROBLEMS / "hidden")
 RUNNER = "http://runner.riftstack.ai:48701"
 
 
@@ -62,10 +63,10 @@ def main() -> int:
     server = args.server.rstrip("/")
     pdir = Path(args.problem)
     if not (pdir / "meta.json").exists():
-        pdir = PROBLEMS / args.problem
+        pdir = next((d / args.problem for d in SEARCH if (d / args.problem / "meta.json").exists()), pdir)
     if not (pdir / "meta.json").exists():
         sys.exit(f"unknown problem {args.problem!r}; choose from: "
-                 + ", ".join(sorted(p.name for p in PROBLEMS.iterdir() if (p / "meta.json").exists())))
+                 + ", ".join(sorted(p.name for d in SEARCH for p in d.iterdir() if (p / "meta.json").exists())))
     meta = json.loads((pdir / "meta.json").read_text())
     expected = dict(np.load(pdir / "expected.npz"))
 

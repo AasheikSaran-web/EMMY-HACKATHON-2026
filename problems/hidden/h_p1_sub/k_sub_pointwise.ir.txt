@@ -1,0 +1,14 @@
+    Tile[a0] (N=128)
+        in0__u0 = load x0[((a0 * 4) + 0)]
+        in1__u0 = load x1[((a0 * 4) + 0)]
+        f32 v0__u0 = subtract(in0__u0, in1__u0)
+        in0__u1 = load x0[((a0 * 4) + 1)]
+        in1__u1 = load x1[((a0 * 4) + 1)]
+        f32 v0__u1 = subtract(in0__u1, in1__u1)
+        in0__u2 = load x0[((a0 * 4) + 2)]
+        in1__u2 = load x1[((a0 * 4) + 2)]
+        f32 v0__u2 = subtract(in0__u2, in1__u2)
+        in0__u3 = load x0[((a0 * 4) + 3)]
+        in1__u3 = load x1[((a0 * 4) + 3)]
+        f32 v0__u3 = subtract(in0__u3, in1__u3)
+        sub[((a0 * 4) + 0)] = (v0__u0, v0__u1, v0__u2, v0__u3)

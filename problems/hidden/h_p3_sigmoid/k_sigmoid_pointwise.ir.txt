@@ -1,0 +1,5 @@
+    Tile[a0] (N=512)
+        in0__u0, in0__u1 = load x[((a0 * 2) + 0)]
+        f32 v0__u0 = sigmoid(in0__u0)
+        f32 v0__u1 = sigmoid(in0__u1)
+        sigmoid[((a0 * 2) + 0)] = (v0__u0, v0__u1)

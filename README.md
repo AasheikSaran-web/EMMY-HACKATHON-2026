@@ -1,7 +1,8 @@
 # EMMY-HACKATHON-2026
 EMMY HACKATHON 2026
 
-compile.py reads Emmy's Kernel IR and emits PTX directly, 
+compile.py reads Emmy's Kernel IR and emits PTX directly, skipping CUDA C++
+and `nvcc`.
 
 ## Run
 
@@ -11,6 +12,11 @@ compile.py reads Emmy's Kernel IR and emits PTX directly,
 
     pip install emmy-ml==0.3.11 numpy requests
     python submit.py <problem_name> --compiler compile.py
+
+`submit.py` needs the hosted runner (`runner.riftstack.ai`), which went
+offline after the event. See [`VERIFICATION.md`](VERIFICATION.md) for a
+GPU-free check of `compile.py` against the full published hidden set
+(`problems/hidden/`) instead — **11/11 pass**.
 
 ## Structure
 
