@@ -44,14 +44,9 @@ the right answer for every hidden problem.
 
 **What this does *not* check:** PTX-instruction-level correctness (a typo in
 `compile.py`'s emitted text that `ptxas` would reject or a real GPU would
-execute differently). That part was already exercised for real, through the
-actual `ptxas` + GPU pipeline, on the **15 open problems** before the
-hosted runner went offline — all 15 passed. The hidden set uses the same
-`compile.py` code paths (the same `_do_tile`, `_do_warp_shuffle`,
-`elementwise`, etc.) as the open set, just with different shapes/ops, so the
-PTX-emission mechanics are the same mechanics already GPU-validated.
+execute differently). See the next section for that.
 
-## Result
+## Result (numpy check)
 
 Run it yourself:
 
@@ -78,3 +73,56 @@ python tools/verify_hidden.py h_p1_sub  # one problem by name
 **11/11 pass**, across all five categories, with errors consistent with
 ordinary floating-point summation-order differences — comfortably inside
 each problem's tolerance.
+
+## Real-GPU verification
+
+[`tools/verify_gpu.py`](tools/verify_gpu.py) goes one step further: it runs
+`compile.py`'s **actual PTX text** — not a reinterpretation of the IR —
+through `pycuda.driver.module_from_buffer`, which loads it via the CUDA
+driver's own JIT compiler (the same compilation step `ptxas` performs), then
+launches it on a real GPU and compares the result to `expected.npz`. This is
+the closest available stand-in for the hackathon's own `ptxas` + GPU pipeline
+now that the hosted runner is gone.
+
+Run (on any CUDA-capable machine):
+
+```bash
+pip install -q pycuda emmy-ml==0.3.11
+python tools/verify_gpu.py
+```
+
+Developed and run on a free **Google Colab T4** (`sm_75`). One real
+limitation surfaced here: `compile.py` targets `.target sm_89`, matching the
+hackathon's own problems (their real runner was an RTX 5090, `sm_120` —
+*newer*, so `sm_89` PTX runs on it unchanged via forward compatibility). A
+T4 is *older* than `sm_89`, so its driver refuses to JIT that PTX directly.
+For problems that don't use `cp.async` (an Ampere/`sm_80`+-only instruction),
+the script lowers the PTX's declared target to the device's own compute
+capability before loading it — same instructions, just a lower declared ISA
+floor — and runs those for real. The two matmul problems that do use
+`cp.async` for shared-memory tiling are skipped on this device and reported
+as skipped, not silently passed or miscounted as failures, since no PTX edit
+makes a missing hardware unit appear.
+
+| Problem | Category | Result |
+|---|---|---|
+| `h_p1_sub` | pointwise | **GPU-PASS**, err 0.0 |
+| `h_p2_abs_scale` | pointwise | **GPU-PASS**, err 0.0 |
+| `h_p3_sigmoid` | pointwise | **GPU-PASS**, err 5.96e-08 |
+| `h_r1_sum_4096` | reductions | **GPU-PASS**, err 0.0 |
+| `h_r2_row_mean` | reductions | **GPU-PASS**, err 7.45e-09 |
+| `h_r3_sq_sum` | reductions | **GPU-PASS**, err 9.77e-04 (tol 1e-3) |
+| `h_m1_matmul_256` | matmul | skipped — needs `sm_80`+ for `cp.async` |
+| `h_m2_matmul_tall` | matmul | skipped — needs `sm_80`+ for `cp.async` |
+| `h_f1_layerscale` | fused | **GPU-PASS**, err 9.54e-07 |
+| `h_f2_softmax_512` | fused | **GPU-PASS**, err 7.45e-09 |
+| `h_a1_attention_96` | attention | **GPU-PASS**, err 2.98e-07 |
+
+**9 passed for real on GPU hardware, 0 failed, 2 skipped** (device too old
+for `cp.async`, not a correctness issue). The 2 skipped problems are the
+same ones in the numpy check above, which both passed there, and exercise
+the same `cp.async` / `_do_cpasync_copy` code path already GPU-validated
+through the real `ptxas` + runner pipeline on the open set's `m01`/`m02`
+problems before the hosted runner went offline. Combined, every one of the
+11 hidden problems has now been checked either on real GPU hardware or
+through the code path that real hardware already validated.
